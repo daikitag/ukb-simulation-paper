@@ -1,0 +1,46 @@
+// Underdominant selection
+
+// Please define the following constants that are used in the simulation:
+// seed - This defines the seed of the simulation
+initialize() {
+	initializeTreeSeq();
+	setSeed(seed);
+	
+	// Mutation information
+	initializeMutationRate(1e-8);
+	
+	// Selection coefficient
+	defineConstant("s_gamma_mean", 10);
+	defineConstant("s_gamma_shape", 0.1);
+	
+	defineConstant("selection_scaling", 1e10);
+
+	// Population parameter
+	defineConstant("N", 1000); // Population size
+
+    scriptForQTLs = "-0.5 * rgamma(n=1, mean=s_gamma_mean, shape=s_gamma_shape)/(2*N) / selection_scaling;";
+    initializeMutationType("m1", selection_scaling, "s", scriptForQTLs);
+	
+	// Chromosome information
+	initializeGenomicElementType("g1", m1, 1.0);
+	initializeGenomicElement(g1, 0, 1e8-1);
+	initializeRecombinationRate(1e-8);
+	
+
+}
+
+// create a population of N individuals
+1 late() {
+	sim.addSubpop("p1", N);
+}
+
+1:(10*N) late() {
+	if (sim.cycle % 1000 != 0)
+		return;
+	catn();
+	catn("Cycle: " + sim.cycle);
+}
+
+10*N early() {
+	sim.treeSeqOutput("underdominance_popsize_" + N + "_seed_" + seed + ".tree");
+}

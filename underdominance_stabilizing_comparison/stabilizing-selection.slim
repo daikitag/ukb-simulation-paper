@@ -1,0 +1,86 @@
+// Stabilizing selection with pleiotropic effects
+
+// Please define the following constants that are used in the simulation:
+// seed - This defines the seed of the simulation
+// n - This is the degree of pleiotropic effects
+
+initialize() {
+	initializeTreeSeq();
+	setSeed(seed);
+	
+	// Mutation information
+	initializeMutationRate(1e-8);
+	initializeMutationType("m1", 0.5, "f", 0.0); // QTL
+	m1.convertToSubstitution = F;
+	
+	// Chromosome information
+	initializeGenomicElementType("g1", m1, 1.0);
+	initializeGenomicElement(g1, 0, 1e8-1);
+	initializeRecombinationRate(1e-8);
+	
+	// Selection coefficient
+	defineConstant("s_gamma_mean", 10);
+	defineConstant("s_gamma_shape", 0.1);
+	
+	// QTL MVN constant
+	defineConstant("QTL_mu", rep(0, n));
+	defineConstant("QTL_sigma", diag(nrow=n));
+	
+	// Stabilizing selection constant
+	defineConstant("w2", 1); // w2 in stabilizing selection
+	
+	// Population parameter
+	defineConstant("N", 1000); // Population size
+
+}
+
+// create a population of N individuals
+1 late() {
+	sim.addSubpop("p1", N);
+}
+
+mutation(m1) {
+	// Draw selection coefficient from gamma distribution
+	s = rgamma(1, mean = s_gamma_mean, shape= s_gamma_shape)/(2*N);
+	direction = rmvnorm(1, mu = QTL_mu, sigma = QTL_sigma);
+	// s = a2 / w2 --> \sum_{i=1}^n a_i^2 = s w^2
+	// Direction of a_i^2 is determined by multiplying the sum
+	// by a draw from multi-variate normal distribution
+	effects = sqrt(s * w2) * direction / sqrt(sum(direction^2));
+	
+	// Add effect size information to mutation
+	for (i in 0:(n-1)){
+		mut.setValue("e"+i, effects[i]);
+	}
+	return T;
+}
+
+late() {
+	for (ind in sim.subpopulations.individuals){
+		muts = ind.haplosomes.mutationsOfType(m1);
+		
+		// Create a vector of length n as phenotype
+		phenotype = rep(0.0, n);
+		for (i in 0:(n-1)){
+			phenotype[i] = size(muts) ? sum(muts.getValue("e"+i)) else 0.0;
+		}
+		ind.setValue("phenotype0", phenotype[0]);
+		
+		// Stabilizing selection fitness function
+		r2 = sum(phenotype^2);
+		fitness = exp(-r2/(2 * w2));
+		ind.fitnessScaling = fitness;
+	}
+}
+
+1:(10*N) late() {
+	if (sim.cycle % 1000 != 0)
+		return;
+	catn();
+	catn("Cycle: " + sim.cycle);
+}
+
+10*N early() {
+	inds = sim.subpopulations.individuals;
+	writeFile("stabilizing_phenotype_n" + n + "_N_" + N + "_seed_" + seed +  ".txt", paste(inds.getValue("phenotype0"), sep=" "));
+}
