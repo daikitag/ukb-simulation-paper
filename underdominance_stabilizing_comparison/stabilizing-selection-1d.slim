@@ -22,10 +22,6 @@ initialize() {
 	defineConstant("s_gamma_mean", 10);
 	defineConstant("s_gamma_shape", 0.1);
 	
-	// QTL MVN constant
-	defineConstant("QTL_mu", rep(0, n));
-	defineConstant("QTL_sigma", diag(nrow=n));
-	
 	// Stabilizing selection constant
 	defineConstant("w2", 1); // w2 in stabilizing selection
 	
@@ -42,32 +38,23 @@ initialize() {
 mutation(m1) {
 	// Draw selection coefficient from gamma distribution
 	s = rgamma(1, mean = s_gamma_mean, shape= s_gamma_shape)/(2*N);
-	direction = rmvnorm(1, mu = QTL_mu, sigma = QTL_sigma);
-	// s = a2 / w2 --> \sum_{i=1}^n a_i^2 = s w^2
-	// Direction of a_i^2 is determined by multiplying the sum
-	// by a draw from multi-variate normal distribution
-	effects = sqrt(s * w2) * direction / sqrt(sum(direction^2));
-	
-	// Add effect size information to mutation
-	for (i in 0:(n-1)){
-		mut.setValue("e"+i, effects[i]);
-	}
+	// Direction is +/- 1
+	direction = 2 * rbinom(n=1, size=1, prob=0.5) - 1;
+	effects = sqrt(s * w2) * direction;
+
+	mut.setValue("e0", effects);
 	return T;
 }
 
 late() {
 	for (ind in sim.subpopulations.individuals){
 		muts = ind.haplosomes.mutationsOfType(m1);
-		
-		// Create a vector of length n as phenotype
-		phenotype = rep(0.0, n);
-		for (i in 0:(n-1)){
-			phenotype[i] = size(muts) ? sum(muts.getValue("e"+i)) else 0.0;
-		}
-		ind.setValue("phenotype0", phenotype[0]);
+
+		phenotype = size(muts) ? sum(muts.getValue("e0")) else 0.0;
+		ind.setValue("phenotype0", phenotype);
 		
 		// Stabilizing selection fitness function
-		r2 = sum(phenotype^2);
+		r2 = phenotype^2;
 		fitness = exp(-r2/(2 * w2));
 		ind.fitnessScaling = fitness;
 	}
@@ -82,5 +69,5 @@ late() {
 
 10*N early() {
 	inds = sim.subpopulations.individuals;
-	writeFile("stabilizing_phenotype_n" + n + "_N_" + N + "_seed_" + seed +  ".txt", paste(inds.getValue("phenotype0"), sep=" "));
+	writeFile("stabilizing_phenotype_n_1_N_" + N + "_seed_" + seed +  ".txt", paste(inds.getValue("phenotype0"), sep=" "));
 }
