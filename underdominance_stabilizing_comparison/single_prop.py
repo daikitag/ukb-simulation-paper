@@ -121,10 +121,10 @@ def pleiotropic_ts_simulate_v(ts, w2, n, N, threshold, seed):
 
 
 def main():
-    ts = tskit.load("underdominance_popsize_1000_U_1_S_10_seed_25.tree")
+    ts = tskit.load(sys.argv[1])
 
     w2 = 1
-    seed = int(sys.argv[1])
+    seed = int(sys.argv[2])
     N = 1000
     threshold = 30
     xaxis_single = np.linspace(0, 3, num=50)
