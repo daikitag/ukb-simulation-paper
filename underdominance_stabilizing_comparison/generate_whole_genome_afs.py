@@ -39,8 +39,8 @@ for pop in pop_list:
     thousand_data[pop] = thousand_final.plot_MAF
 
 # Save the dictionary as pickle object
-with open("simulation_maf.pcl", "w") as f:
+with open("simulation_maf.pcl", "wb") as f:
     pickle.dump(sim_data, f)
 
-with open("thousand_maf.pcl", "w") as f:
+with open("thousand_maf.pcl", "wb") as f:
     pickle.dump(thousand_data, f)
