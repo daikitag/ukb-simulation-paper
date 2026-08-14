@@ -1,5 +1,7 @@
 import pandas as pd
 import pickle
+import numpy as np
+
 
 from glob import glob
 
@@ -38,9 +40,24 @@ for pop in pop_list:
     sim_data[pop] = sim_final.plot_MAF
     thousand_data[pop] = thousand_final.plot_MAF
 
-# Save the dictionary as pickle object
-with open("simulation_maf.pcl", "wb") as f:
-    pickle.dump(sim_data, f)
+boundary = [0.1, 0.15, 0.2, 0.25, 0.3, 0.4, 0.5]
+groups = ["10-15%", "15-20%", "20-25%", "25-30%", "30-40%", "40-50%"]
 
-with open("thousand_maf.pcl", "wb") as f:
-    pickle.dump(thousand_data, f)
+frames = []
+
+for pop in ["ceu", "yri", "chb", "jpt"]:
+    sim_plot, _ = np.histogram(sim_data[pop], bins=boundary)
+    thousand_plot, _ = np.histogram(thousand_data[pop], bins=boundary)
+
+    afs_plot = pd.DataFrame(
+        {
+            "simulation": sim_plot,
+            "1000 Genomes Project": thousand_plot,
+            "groups": groups,
+            "population": [pop] * len(sim_plot),
+        },
+    )
+    frames.append(afs_plot)
+
+final_data = pd.concat(frames, ignore_index=True)
+final_data.to_csv("plot_data_afs.csv", index=False)
