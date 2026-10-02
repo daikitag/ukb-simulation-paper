@@ -1,3 +1,4 @@
 *.pdf
 plot_codes/.ipynb_checkpoints/*
 plot_codes/data/maf_causal/*.csv
+plot_codes/data/final_pgs_result/*
